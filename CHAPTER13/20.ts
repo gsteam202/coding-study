@@ -1,90 +1,127 @@
-type Cell = 'S' | 'T' | 'X' | 'O';
-type Pos = [number, number];
+const canSeeStudent = (board: string[][], teachers: [number, number][], N: number) => {
+  const directions = [
+    [-1, 0], // 위
+    [1, 0],  // 아래
+    [0, -1], // 왼쪽
+    [0, 1],  // 오른쪽
+  ];
 
-const directions: Pos[] = [
-  [-1, 0], // up
-  [1, 0],  // down
-  [0, -1], // left
-  [0, 1],  // right
-];
+  for (let i = 0; i < teachers.length; i++) {
+    const [x, y] = teachers[i];
 
-// 학생이 감시되는지 확인
-function canSeeStudent(board: Cell[][], teachers: Pos[], N: number): boolean {
-  for (const [x, y] of teachers) {
-    for (const [dx, dy] of directions) {
+    // 4방향 확인 (위, 아래, 왼쪽, 오른쪽)
+    for (let d = 0; d < directions.length; d++) {
+      const [dx, dy] = directions[d];
+
+      // 한 방향으로 쭉 이동하면서 확인
       let nx = x + dx;
       let ny = y + dy;
 
-      while (nx >= 0 && ny >= 0 && nx < N && ny < N) {
-        if (board[nx][ny] === 'O') break;
-        if (board[nx][ny] === 'T') return true;
+      while (0 <= nx && nx < N && 0 <= ny && ny < N) {
+        const cell = board[nx][ny];
+
+        if (cell === 'O') {
+          // 장애물이면 더 이상 볼 수 없음
+          break;
+        }
+
+        if (cell === 'S') {
+          // 학생 발견
+          return true;
+        }
+
+        // 다음 칸으로 이동
         nx += dx;
         ny += dy;
       }
     }
   }
+
+  // 선생님 아무도 학생을 못 봤으면 감시 실패
   return false;
 }
 
-// 조합 생성 함수
-function getCombinations<T>(arr: T[], select: number): T[][] {
-  if (select === 0) return [[]];
-  if (arr.length === 0) return [];
 
-  const [first, ...rest] = arr;
+const getCombinations = (arr: any[]) => {
+  const results: any[] = [];
 
-  const withFirst = getCombinations(rest, select - 1).map(comb => [first, ...comb]);
-  const withoutFirst = getCombinations(rest, select);
+  const combine = (start: number, path: any[]) => {
+    if (path.length === 3) {
+      results.push([...path]);
+      return;
+    }
 
-  return [...withFirst, ...withoutFirst];
+    for (let i = start; i < arr.length; i++) {
+      path.push(arr[i]);
+      combine(i + 1, path);
+      path.pop();
+    }
+  };
+
+  combine(0, []);
+  return results;
 }
 
-// 메인 함수
-function solve(board: Cell[][]): string {
-  const N = board.length;
-  const empty: Pos[] = [];
-  const teachers: Pos[] = [];
+const canMonitoring = (input: any[][]) => {
+  const N: number = input[0][0];
+  const cleanBoard = input.slice(1) as string[][];
+  const empty: any = [];
+  const teacher: any = [];
 
-  // 빈 공간, 선생님 위치 수집
   for (let i = 0; i < N; i++) {
     for (let j = 0; j < N; j++) {
-      if (board[i][j] === 'X') empty.push([i, j]);
-      if (board[i][j] === 'S') teachers.push([i, j]);
+      if (cleanBoard[i][j] === 'X') empty.push([i, j]);
+      else if (cleanBoard[i][j] === 'T') teacher.push([i, j]);
+    }
+  }
+  //
+  console.log(empty);
+  // console.log(teacher);
+
+  const combinations = getCombinations(empty);
+  console.log([...combinations].splice(0, 3));
+  console.log('simulation length: ' + combinations.length);
+
+  for (let i = 0; i < combinations.length; i++) {
+    const comb = combinations[i];
+
+    for (let j = 0; j < comb.length; j++) {
+      const [x, y] = comb[j];
+      cleanBoard[x][y] = 'O';
+    }
+
+    const success = !canSeeStudent(cleanBoard, teacher, N);
+
+    if (success) {
+      return 'YES';
+    }
+
+    for (let j = 0; j < comb.length; j++) {
+      const [x, y] = comb[j];
+      cleanBoard[x][y] = 'X';
     }
   }
 
-  const combinations = getCombinations(empty, 3);
-
-  for (const comb of combinations) {
-    // 장애물 설치
-    for (const [x, y] of comb) board[x][y] = 'O';
-
-    // 감시 여부 확인
-    if (!canSeeStudent(board, teachers, N)) return 'YES';
-
-    // 원상복구
-    for (const [x, y] of comb) board[x][y] = 'X';
-  }
-
   return 'NO';
-}
+};
 
-// 예제 테스트
-const board1: Cell[][] = [
-  ['X', 'S', 'X', 'X', 'T'],
-  ['T', 'X', 'S', 'X', 'X'],
-  ['X', 'X', 'X', 'X', 'X'],
-  ['X', 'T', 'X', 'X', 'X'],
-  ['X', 'X', 'T', 'X', 'X'],
-];
+// const board1 = [
+//   [5],
+//   ['X', 'S', 'X', 'X', 'T'],
+//   ['T', 'X', 'S', 'X', 'X'],
+//   ['X', 'X', 'X', 'X', 'X'],
+//   ['X', 'T', 'X', 'X', 'X'],
+//   ['X', 'X', 'T', 'X', 'X'],
+// ];
+//
+// console.log(canMonitoring(board1)); // YES
 
-console.log(solve(board1)); // YES
-
-const board2: Cell[][] = [
-  ['S', 'S', 'S', 'T'],
+const board2 = [
+  [4],
+  ['T', 'T', 'T', 'S'],
   ['X', 'X', 'X', 'X'],
   ['X', 'X', 'X', 'X'],
-  ['T', 'T', 'T', 'X'],
+  ['S', 'S', 'S', 'X'],
 ];
 
-console.log(solve(board2)); // NO
+console.log(canMonitoring(board2)); // NO
