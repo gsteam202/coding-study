@@ -34,6 +34,8 @@ const calc = (arr: string[]): number => {
   const right = upperBound(numbers, N, x);
   const count = right - left;
 
+  console.log(left, right, count);
+
   return count > 0 ? count : -1;
 };
 
